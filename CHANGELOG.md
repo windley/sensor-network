@@ -4,6 +4,10 @@ All notable changes to sensor-network rulesets and the Home Assistant companion.
 
 ## [Unreleased]
 
+### Added
+
+- **`io.picolabs.sensor.community`** — `readings:clear` event clears stored readings for one sensor (`name`, `sensor_name`, or `entity` attr).
+
 ### Fixed
 
 - **`io.picolabs.sensor.community`** — `lastTemperatures` no longer assumes every thing has `io.picolabs.lht65.router`. It reads the latest stored community reading (any Dragino temperature field) and falls back to `lastTemperature` on the installed temperature router.

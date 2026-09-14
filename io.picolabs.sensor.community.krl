@@ -26,6 +26,7 @@ ruleset io.picolabs.sensor.community {
        "eventPolicy": {
          "allow": [
            { "domain": "sensor", "name": "*" },
+           { "domain": "readings", "name": "clear" },
            { "domain": "community", "name": "add_thing" }
          ],
         "deny": []
@@ -226,13 +227,26 @@ ruleset io.picolabs.sensor.community {
                    "attrs": attrs });
   }
 
-	  rule catch_new_readings {
+  rule catch_new_readings {
     select when sensor new_readings
     pre {
       name = event:attr("sensor_name");
     }
     always {
       ent:sensor_readings{name} := ent:sensor_readings{name}.defaultsTo([]).push(event:attrs)
+    }
+  }
+
+  rule clear_readings {
+    select when readings clear
+    pre {
+      name = event:attr("name") || event:attr("sensor_name") || event:attr("entity");
+    }
+    if name then send_directive("clearing stored readings", {"name": name})
+    fired {
+      clear ent:sensor_readings{name}
+    } else {
+      log error "readings:clear requires name, sensor_name, or entity"
     }
   }
 
