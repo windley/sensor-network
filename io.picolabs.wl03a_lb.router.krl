@@ -117,7 +117,8 @@ Received and decodes heartbeat information from a Dragino WL03A-LB Leak Detector
                       }.klog("Sensor data: ");
 
         readings = {"readings":  sensor_data,
-                    "timestamp": event:attr("reported_at")
+                    "timestamp": event:attr("reported_at"),
+                    "sensor_name": ent:lastHeartbeat{"name"} || wrangler:myself(){"name"}
 	                 }
       }
       always {

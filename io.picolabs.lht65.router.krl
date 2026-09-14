@@ -9,7 +9,7 @@ Received and decodes heartbeat information from a Dragino LHT65
     use module io.picolabs.wrangler alias wrangler
     use module io.picolabs.dragino alias dragino
 
-    shares lastHeartbeat, lastHumidity, lastInternalTemp, lastProbeTemp
+    shares lastHeartbeat, lastHumidity, lastTemperature, lastInternalTemp, lastProbeTemp
 
   }
 
@@ -47,6 +47,10 @@ Received and decodes heartbeat information from a Dragino LHT65
     }
     
     lastInternalTemp = function() {
+      ent:lastInternalTemp
+    }
+
+    lastTemperature = function() {
       ent:lastInternalTemp
     }
 
@@ -152,7 +156,7 @@ Received and decodes heartbeat information from a Dragino LHT65
                     "sensor_type": "dragino_lht65",
 	                  "sensor_id": event:attrs{["uuid"]},
                     "timestamp": event:attrs{["reported_at"]},
-                    "sensor_name": event:attrs{["name"]}
+                    "sensor_name": event:attrs{["name"]} || wrangler:myself(){"name"}
 	                 }
       }
       always {

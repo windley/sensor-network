@@ -101,7 +101,8 @@ Received and decodes heartbeat information from a Dragino LSE01 (soil sensor)
         readings = {"readings":  sensor_data,
 	                  "sensor_id": event:attrs{["uuid"]},
                     "sensor_type": "dragino_lse01",
-                    "timestamp": event:attrs{["reported_at"]}
+                    "timestamp": event:attrs{["reported_at"]},
+                    "sensor_name": event:attrs{["name"]} || wrangler:myself(){"name"}
 	                 }
       }
       always {

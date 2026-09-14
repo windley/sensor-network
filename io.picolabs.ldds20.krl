@@ -87,7 +87,8 @@ Received and decodes heartbeat information from a Dragino LDDS20 liquid level se
         readings = {"readings":  sensor_data,
                     "sensor_type": "dragino_ldds20",
 	                  "sensor_id": event:attrs{["uuid"]},
-                    "timestamp": event:attrs{["reported_at"]}
+                    "timestamp": event:attrs{["reported_at"]},
+                    "sensor_name": event:attrs{["name"]} || wrangler:myself(){"name"}
 	                 }
       }
       always {

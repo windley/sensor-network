@@ -9,7 +9,7 @@ Received and decodes heartbeat information from a Dragino LSN50
     use module io.picolabs.wrangler alias wrangler
     use module io.picolabs.dragino alias dragino
 
-    share lastHeartbeat, lastTemperature_01, lastTemperature_02, lastTemperature_03
+    shares lastHeartbeat, lastTemperature, lastTemperature_01, lastTemperature_02, lastTemperature_03
 
   }
 
@@ -40,6 +40,10 @@ Received and decodes heartbeat information from a Dragino LSN50
     // API functions
     lastHeartbeat = function() {
       ent:lastHeartbeat.klog("Return value ")
+    }
+
+    lastTemperature = function() {
+      ent:lastTemperature_01
     }
 
     lastTemperature_01 = function() {
@@ -103,7 +107,8 @@ Received and decodes heartbeat information from a Dragino LSN50
         readings = {"readings":  sensor_data,
                     "sensor_type": "dragino_lsn50",
 		    "sensor_id": event:attrs{["uuid"]},
-                    "timestamp": event:attrs{["reported_at"]}
+                    "timestamp": event:attrs{["reported_at"]},
+                    "sensor_name": event:attrs{["name"]} || wrangler:myself(){"name"}
 	                 }
       }
       if(event:attrs{"payload_size"} == expected_payload_size) then noop()

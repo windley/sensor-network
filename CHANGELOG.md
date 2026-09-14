@@ -2,6 +2,14 @@
 
 All notable changes to sensor-network rulesets and the Home Assistant companion.
 
+## [Unreleased]
+
+### Fixed
+
+- **`io.picolabs.sensor.community`** — `lastTemperatures` no longer assumes every thing has `io.picolabs.lht65.router`. It reads the latest stored community reading (any Dragino temperature field) and falls back to `lastTemperature` on the installed temperature router.
+- **`io.picolabs.lht65.router`**, **`io.picolabs.lsn50.router`** — added shared `lastTemperature` query (LSE01 already had it). LHT65 returns internal temp; LSN50 returns the white probe.
+- **All Dragino router rulesets** — `sensor new_readings` includes top-level `sensor_name` (Helium device `name`, falling back to the thing pico's wrangler name) so community `catch_new_readings` keys history correctly.
+
 ## [1.0.0] - 2026-07-22
 
 First release of the **Manifold Sensor Network** HA companion alongside existing KRL rulesets.

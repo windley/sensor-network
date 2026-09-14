@@ -84,15 +84,73 @@ ruleset io.picolabs.sensor.community {
         || wrangler:picoQuery(sub{"Tx"}, "io.picolabs.wrangler", "myself"){"name"}
     };
 
+    thingPicoId = function(sub) {
+      sub{"picoID"}
+        || wrangler:picoQuery(sub{"Tx"}, "io.picolabs.wrangler", "myself"){"id"}
+    };
+
+    // Keys used in sensor new_readings payloads across Dragino router types.
+    temperatureReadingKeys = [
+      "device_temperature",
+      "temperature",
+      "probe_temperature",
+      "white_probe",
+      "red_probe",
+      "black_probe"
+    ];
+
+    temperatureFromReadingMap = function(readingsMap) {
+      temperatureReadingKeys
+        .map(function(key){ readingsMap{key} })
+        .filter(function(value){ not value.isnull() })
+        .head()
+    };
+
+    lastStoredReadingForThing = function(thingPicoId) {
+      ent:sensor_readings.keys()
+        .map(function(name){ ent:sensor_readings{name}.defaultsTo([]).head() })
+        .filter(function(entry){
+          entry && entry{"sender_id"} == thingPicoId
+        })
+        .head()
+    };
+
+    // Router types that expose a shared lastTemperature query (see each *.router RS).
+    temperatureRouterTypes = ["lht65", "lse01", "lsn50"];
+
+    temperatureRouterRids = function() {
+      temperatureRouterTypes.map(function(sensorType){
+        rids_to_install{sensorType}.head()
+      })
+    };
+
+    lastTemperatureFromRouter = function(thingEci) {
+      installed = wrangler:picoQuery(thingEci, "io.picolabs.wrangler", "installedRIDs");
+      temperatureRouterRids()
+        .filter(function(rid){ installed >< rid })
+        .map(function(rid){
+          wrangler:picoQuery(thingEci, rid, "lastTemperature")
+        })
+        .filter(function(value){ not value.isnull() })
+        .head()
+    };
+
+    lastTemperatureForThing = function(sub) {
+      thing_eci = sub{"Tx"};
+      thing_id = thingPicoId(sub);
+      recent = lastStoredReadingForThing(thing_id);
+      temp = recent.isnull() => null
+           | temperatureFromReadingMap(recent{"readings"}.defaultsTo({}));
+      temp.isnull() => lastTemperatureFromRouter(thing_eci) | temp
+    };
+
     lastTemperatures = function() {
       sensorThings().map(function(sub){
-                     temperature = wrangler:picoQuery(sub{"Tx"},
-                                                     "io.picolabs.lht65.router",
-                                                     "lastInternalTemp");
-                     {"name": thingDisplayName(sub),
-                      "lastTemperature": temperature
-                     }
-                   });
+        {
+          "name": thingDisplayName(sub),
+          "lastTemperature": lastTemperatureForThing(sub)
+        }
+      })
     };
 
     push = function(array, new_element, len=10) {
