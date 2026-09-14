@@ -18,7 +18,7 @@ from custom_components.pico_mesh.hub import (
     WRANGLER_RULESET,
 )
 
-from .drivers.lht65 import LHT65_ROUTER_RULESET, LHT65_SENSOR_QUERIES
+from .drivers.registry import ROUTER_DRIVERS, RouterDriver
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,8 +29,14 @@ Listener = Callable[[], None]
 class ThingSensorState:
     """Cached router readings for one Manifold thing."""
 
-    lht65_installed: bool = False
-    lht65_readings: dict[str, Any] = field(default_factory=dict)
+    installed: dict[str, bool] = field(default_factory=dict)
+    readings: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    def is_installed(self, driver: RouterDriver) -> bool:
+        return self.installed.get(driver.ruleset, False)
+
+    def reading(self, driver: RouterDriver, query_name: str) -> Any:
+        return self.readings.get(driver.ruleset, {}).get(query_name)
 
 
 class SensorNetworkCoordinator:
@@ -87,30 +93,34 @@ class SensorNetworkCoordinator:
             _LOGGER.debug(
                 "Sensor router probe failed for thing %s: %s", thing.pico_id, err
             )
-            state.lht65_installed = False
-            state.lht65_readings = {}
+            state.installed.clear()
+            state.readings.clear()
             return
 
-        if not isinstance(rids, list) or LHT65_ROUTER_RULESET not in rids:
-            state.lht65_installed = False
-            state.lht65_readings = {}
-            return
+        installed_rids = rids if isinstance(rids, list) else []
 
-        readings: dict[str, Any] = {}
-        for query_name in LHT65_SENSOR_QUERIES:
-            try:
-                readings[query_name] = await api.sky_query(
-                    thing.tx_eci, LHT65_ROUTER_RULESET, query_name, {}
-                )
-            except PicoEngineApiError as err:
-                _LOGGER.debug(
-                    "LHT65 query %s failed for thing %s: %s",
-                    query_name,
-                    thing.pico_id,
-                    err,
-                )
-        state.lht65_installed = True
-        state.lht65_readings = readings
+        for driver in ROUTER_DRIVERS:
+            if driver.ruleset not in installed_rids:
+                state.installed[driver.ruleset] = False
+                state.readings.pop(driver.ruleset, None)
+                continue
+
+            readings: dict[str, Any] = {}
+            for query_name in driver.queries:
+                try:
+                    readings[query_name] = await api.sky_query(
+                        thing.tx_eci, driver.ruleset, query_name, {}
+                    )
+                except PicoEngineApiError as err:
+                    _LOGGER.debug(
+                        "%s query %s failed for thing %s: %s",
+                        driver.prefix,
+                        query_name,
+                        thing.pico_id,
+                        err,
+                    )
+            state.installed[driver.ruleset] = True
+            state.readings[driver.ruleset] = readings
 
     @callback
     def async_shutdown(self) -> None:

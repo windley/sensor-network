@@ -15,7 +15,7 @@ from custom_components.pico_mesh.hub import ManifoldThing, ManifoldThingEntity, 
 
 from .const import DOMAIN
 from .coordinator import SensorNetworkCoordinator
-from .drivers.lht65 import LHT65_SENSOR_QUERIES, parse_lht65_reading
+from .drivers.registry import ROUTER_DRIVERS, RouterDriver
 
 _DEVICE_CLASS = {
     "temperature": SensorDeviceClass.TEMPERATURE,
@@ -42,7 +42,10 @@ async def async_setup_entry(
     def _sync_entities() -> None:
         new_entities: list[SensorEntity] = []
         for thing in hub.data.things.values():
-            new_entities.extend(_lht65_entities(coordinator, hub, thing, known))
+            for driver in ROUTER_DRIVERS:
+                new_entities.extend(
+                    _router_entities(coordinator, hub, thing, driver, known)
+                )
         if new_entities:
             async_add_entities(new_entities)
 
@@ -50,28 +53,30 @@ async def async_setup_entry(
     coordinator.async_add_listener(_sync_entities)
 
 
-def _lht65_entities(
+def _router_entities(
     coordinator: SensorNetworkCoordinator,
     hub: PicoMeshCoordinator,
     thing: ManifoldThing,
+    driver: RouterDriver,
     known: set[str],
 ) -> list[SensorEntity]:
     state = coordinator.states.get(thing.pico_id)
-    if state is None or not state.lht65_installed:
+    if state is None or not state.is_installed(driver):
         return []
 
     entities: list[SensorEntity] = []
-    for query_name, spec in LHT65_SENSOR_QUERIES.items():
-        suffix = f"lht65_{spec['key']}"
+    for query_name, spec in driver.queries.items():
+        suffix = f"{driver.prefix}_{spec['key']}"
         unique_id = f"thing_{thing.pico_id}_{suffix}"
         if unique_id in known:
             continue
         known.add(unique_id)
         entities.append(
-            Lht65Sensor(
+            RouterSensor(
                 coordinator,
                 hub,
                 thing,
+                driver=driver,
                 query_name=query_name,
                 spec=spec,
             )
@@ -79,8 +84,8 @@ def _lht65_entities(
     return entities
 
 
-class Lht65Sensor(ManifoldThingEntity, SensorEntity):
-    """One reading from an LHT65 sensor thing."""
+class RouterSensor(ManifoldThingEntity, SensorEntity):
+    """One reading from a sensor-network router ruleset on a thing pico."""
 
     def __init__(
         self,
@@ -88,15 +93,17 @@ class Lht65Sensor(ManifoldThingEntity, SensorEntity):
         hub_coordinator: PicoMeshCoordinator,
         thing: ManifoldThing,
         *,
+        driver: RouterDriver,
         query_name: str,
         spec: dict[str, str | None],
     ) -> None:
         super().__init__(
             hub_coordinator,
             thing,
-            unique_id_suffix=f"lht65_{spec['key']}",
+            unique_id_suffix=f"{driver.prefix}_{spec['key']}",
         )
         self._sensor_coordinator = sensor_coordinator
+        self._driver = driver
         self._query_name = query_name
         self._attr_name = str(spec["name"])
         device_class = spec.get("device_class")
@@ -126,6 +133,6 @@ class Lht65Sensor(ManifoldThingEntity, SensorEntity):
     @callback
     def _handle_sensor_coordinator_update(self) -> None:
         state = self._sensor_coordinator.states.get(self._thing_id)
-        raw = state.lht65_readings.get(self._query_name) if state else None
-        self._attr_native_value = parse_lht65_reading(self._query_name, raw)
+        raw = state.reading(self._driver, self._query_name) if state else None
+        self._attr_native_value = self._driver.parse(self._query_name, raw)
         self.async_write_ha_state()
