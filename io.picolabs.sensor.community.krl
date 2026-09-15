@@ -107,6 +107,30 @@ ruleset io.picolabs.sensor.community {
         .head()
     };
 
+    // Millisecond epoch from a sensor new_readings payload (Dragino routers).
+    readingTimestampMs = function(attrs) {
+      attrs{"timestamp"}
+    };
+
+    formatTimestampMs = function(epochMs) {
+      epochMs.isnull() => null
+      | time:strftime(time:new(epochMs), "%Y-%m-%d %H:%M:%S %Z")
+    };
+
+    // Add ISO + human-readable timestamps alongside the existing unix ms value.
+    enrichReadingAttrs = function(attrs) {
+      ts = readingTimestampMs(attrs);
+      ts.isnull() => attrs
+      | attrs.put("timestamp_iso", time:new(ts))
+         .put("timestamp_human", formatTimestampMs(ts))
+    };
+
+    readingDateTimeForEntry = function(entry) {
+      entry.isnull() => null
+      | entry{"timestamp_human"}
+        || formatTimestampMs(entry{"timestamp"})
+    };
+
     lastStoredReadingForThing = function(thingPicoId) {
       ent:sensor_readings.keys()
         .map(function(name){ ent:sensor_readings{name}.defaultsTo([]).head() })
@@ -136,20 +160,49 @@ ruleset io.picolabs.sensor.community {
         .head()
     };
 
+    lastHeartbeatFromRouter = function(thingEci) {
+      installed = wrangler:picoQuery(thingEci, "io.picolabs.wrangler", "installedRIDs");
+      temperatureRouterRids()
+        .filter(function(rid){ installed >< rid })
+        .map(function(rid){
+          wrangler:picoQuery(thingEci, rid, "lastHeartbeat")
+        })
+        .filter(function(value){ not value.isnull() })
+        .head()
+    };
+
+    routerReadingTimestampMs = function(thingEci) {
+      heartbeat = lastHeartbeatFromRouter(thingEci);
+      heartbeat.isnull() => null | heartbeat{"reported_at"}
+    };
+
     lastTemperatureForThing = function(sub) {
       thing_eci = sub{"Tx"};
       thing_id = thingPicoId(sub);
       recent = lastStoredReadingForThing(thing_id);
       temp = recent.isnull() => null
            | temperatureFromReadingMap(recent{"readings"}.defaultsTo({}));
-      temp.isnull() => lastTemperatureFromRouter(thing_eci) | temp
+      stored_ts = recent.isnull() => null | recent{"timestamp"};
+      stored_at = readingDateTimeForEntry(recent);
+      temp.isnull() => {
+        "lastTemperature": lastTemperatureFromRouter(thing_eci),
+        "readingAt": formatTimestampMs(routerReadingTimestampMs(thing_eci)),
+        "timestamp": routerReadingTimestampMs(thing_eci)
+      } | {
+        "lastTemperature": temp,
+        "readingAt": stored_at,
+        "timestamp": stored_ts
+      }
     };
 
     lastTemperatures = function() {
       sensorThings().map(function(sub){
+        info = lastTemperatureForThing(sub);
         {
           "name": thingDisplayName(sub),
-          "lastTemperature": lastTemperatureForThing(sub)
+          "lastTemperature": info{"lastTemperature"},
+          "readingAt": info{"readingAt"},
+          "timestamp": info{"timestamp"}
         }
       })
     };
@@ -231,9 +284,10 @@ ruleset io.picolabs.sensor.community {
     select when sensor new_readings
     pre {
       name = event:attr("sensor_name");
+      stored = enrichReadingAttrs(event:attrs);
     }
     always {
-      ent:sensor_readings{name} := ent:sensor_readings{name}.defaultsTo([]).push(event:attrs)
+      ent:sensor_readings{name} := ent:sensor_readings{name}.defaultsTo([]).push(stored)
     }
   }
 
