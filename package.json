@@ -2,7 +2,7 @@
   "name": "sensor-network",
   "private": true,
   "type": "module",
-  "description": "KRL rulesets for the sensor network on Pico Engine 1.0",
+  "description": "KRL rulesets for the Manifold sensor network (pico-engine 1.8+, Manifold 1.8+)",
   "scripts": {
     "test": "tsx t/run.ts",
     "test:parse": "tsx t/parse.ts",

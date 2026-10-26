@@ -11,6 +11,7 @@ import {
 } from "../../.manifold-api/t/lib/manifold.js";
 import { getSensorTestContext } from "../lib/sensor-fixture.js";
 import {
+  communityThingLinkName,
   createSensorThing,
   sensorThingRulesets,
 } from "../lib/sensor.js";
@@ -34,7 +35,7 @@ describe("sensor initiation", () => {
     it(`creates a ${type} sensor thing with Manifold and sensor-network rulesets`, async () => {
       const state = getTestState();
       const bootstrap = getTestBootstrap();
-      const { communityUiEci, communityQueryEci, manifoldAppEci } =
+      const { communityName, communityUiEci, communityQueryEci, manifoldAppEci } =
         getSensorTestContext();
 
       const required = sensorThingRulesets(type);
@@ -45,7 +46,8 @@ describe("sensor initiation", () => {
         communityQueryEci,
         manifoldAppEci,
         name,
-        type
+        type,
+        communityName
       );
 
       const picoName = await query<string>(
@@ -68,8 +70,18 @@ describe("sensor initiation", () => {
       assert.ok(entry.Id && entry.Tx, "Manifold→thing subscription missing Id or Tx channel");
 
       const communityThings = await getCommunityThings(state, communityQueryEci);
-      const member = communityThings.find(t => t.name === name);
-      assert.ok(member, `community missing thing "${name}"`);
+      const linkName = communityThingLinkName(communityName, name);
+      const member = communityThings.find(
+        t =>
+          t.Tx_role === "thing" &&
+          (t.name === linkName ||
+            t.name === name ||
+            (t.name && t.name.endsWith(`:${name}`)))
+      );
+      assert.ok(
+        member,
+        `community missing thing "${linkName}" (members: ${communityThings.map(t => t.name).join(", ") || "none"})`
+      );
       assert.equal(member.Tx_role, "thing");
 
       const things = await getThings(state, manifoldAppEci);

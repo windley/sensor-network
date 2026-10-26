@@ -69,6 +69,10 @@ ruleset io.picolabs.sensor.community {
 
     // Sensors are now Manifold "things" subscribed to this community rather than
     // child picos, so enumerate them via the community/thing subscriptions.
+    /**
+     * Member sensor things (Manifold things subscribed to this community).
+     * @returns Array subscription maps with Tx_role thing
+     */
     sensorThings = function() {
       subscription:established().filter(function(sub){
         sub{"Tx_role"} == "thing"
@@ -76,18 +80,18 @@ ruleset io.picolabs.sensor.community {
     };
 
     pdsProfileField = function(eci, field) {
-      wrangler:picoQuery(eci, "io.picolabs.pds", "profile", field){"profile"}
+      wrangler:picoQuery(eci, "io.picolabs.pds", "profile", {}){"profile"}{field}
     };
 
     thingDisplayName = function(sub) {
       sub{"name"}
         || pdsProfileField(sub{"Tx"}, "name")
-        || wrangler:picoQuery(sub{"Tx"}, "io.picolabs.wrangler", "myself"){"name"}
+        || wrangler:picoQuery(sub{"Tx"}, "io.picolabs.wrangler", "myself", {}){"name"}
     };
 
     thingPicoId = function(sub) {
       sub{"picoID"}
-        || wrangler:picoQuery(sub{"Tx"}, "io.picolabs.wrangler", "myself"){"id"}
+        || wrangler:picoQuery(sub{"Tx"}, "io.picolabs.wrangler", "myself", {}){"id"}
     };
 
     // Keys used in sensor new_readings payloads across Dragino router types.
@@ -150,22 +154,22 @@ ruleset io.picolabs.sensor.community {
     };
 
     lastTemperatureFromRouter = function(thingEci) {
-      installed = wrangler:picoQuery(thingEci, "io.picolabs.wrangler", "installedRIDs");
+      installed = wrangler:picoQuery(thingEci, "io.picolabs.wrangler", "installedRIDs", {});
       temperatureRouterRids()
         .filter(function(rid){ installed >< rid })
         .map(function(rid){
-          wrangler:picoQuery(thingEci, rid, "lastTemperature")
+          wrangler:picoQuery(thingEci, rid, "lastTemperature", {})
         })
         .filter(function(value){ not value.isnull() })
         .head()
     };
 
     lastHeartbeatFromRouter = function(thingEci) {
-      installed = wrangler:picoQuery(thingEci, "io.picolabs.wrangler", "installedRIDs");
+      installed = wrangler:picoQuery(thingEci, "io.picolabs.wrangler", "installedRIDs", {});
       temperatureRouterRids()
         .filter(function(rid){ installed >< rid })
         .map(function(rid){
-          wrangler:picoQuery(thingEci, rid, "lastHeartbeat")
+          wrangler:picoQuery(thingEci, rid, "lastHeartbeat", {})
         })
         .filter(function(value){ not value.isnull() })
         .head()
@@ -195,6 +199,10 @@ ruleset io.picolabs.sensor.community {
       }
     };
 
+    /**
+     * Latest temperature (or router fallback) per member sensor thing.
+     * @returns Array of { name, lastTemperature, readingAt, timestamp }
+     */
     lastTemperatures = function() {
       sensorThings().map(function(sub){
         info = lastTemperatureForThing(sub);
@@ -227,6 +235,11 @@ ruleset io.picolabs.sensor.community {
       "testing done, check logs"
     }
 
+    /**
+     * Stored reading history for one sensor name, or all sensors when name is omitted.
+     * @attr name String optional "sensor_name key used in ent:sensor_readings"
+     * @returns Array or Map
+     */
     readings = function(name) {
       name => ent:sensor_readings{name}
             | ent:sensor_readings
@@ -310,6 +323,16 @@ ruleset io.picolabs.sensor.community {
   // child, we ask the Manifold pico (our parent) to create a bare "thing" and
   // call us back. We mint a correlation id (rcn), stash the sensor-specific
   // context under it, and pass only {name, callback_eci, rcn} to Manifold.
+  /**
+   * Add a sensor thing: delegates creation to the Manifold pico (`manifold create_thing`),
+   * then joins the thing to this community and installs router rulesets on callback.
+   * Send on this community's **sensor** channel (not the UI channel).
+   * @attr name String optional "thing display name"
+   * @attr type String optional "router key from rids_to_install (lht65, lse01, lsn50, wl03a_lb; default dht65)"
+   * @attr color String optional "UI color hint"
+   * @attr config Map optional "passed to wrangler install_ruleset_request on the thing"
+   * @example "lht65" { "name": "Shed LHT65", "type": "lht65" }
+   */
   rule new_sensor {
     select when sensor initiation
     pre {

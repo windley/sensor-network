@@ -24,10 +24,15 @@ Send sensor create_community to the Manifold pico to create a new sensor communi
     // on, external channels off unless explicitly requested on create_community.
     default_notify_channels = ["Manifold"]
 
+    /**
+     * Sensor communities created through this bootstrap, with names/descriptions
+     * refreshed from each community's PDS profile when available.
+     * @returns Array
+     */
     getSensorCommunities = function() {
       ent:sensor_communities.defaultsTo({}).map(function(entry, key) {
         community_eci = entry{"picoID"} || key;
-        pdsProfile = wrangler:picoQuery(community_eci, "io.picolabs.pds", "profile"){"profile"}.defaultsTo({});
+        pdsProfile = wrangler:picoQuery(community_eci, "io.picolabs.pds", "profile", {}){"profile"}.defaultsTo({});
         entry
           .put(["name"], pdsProfile{"name"} || entry{"name"})
           .put(["description"], pdsProfile{"description"} || entry{"description"})
@@ -35,9 +40,15 @@ Send sensor create_community to the Manifold pico to create a new sensor communi
     }
   }
 
-  // Step 1: delegate community creation to manifold_pico (generic Manifold plumbing).
-  // Stash context under rcn; manifold_pico creates the child and subscribes it
-  // as a manifold_community. Step 2 installs sensor.community on the child.
+  /**
+   * Create a sensor community: delegates to Manifold (`manifold new_community`),
+   * then installs `io.picolabs.sensor.community` on the new child when Manifold
+   * finishes. Send on the Manifold app channel (sensor domain allowed there).
+   * @attr name String optional "community display name (default: Sensors)"
+   * @attr description String optional
+   * @attr notify_channels String optional "comma-separated notification channels, e.g. Manifold,SMS,Prowl (default: Manifold)"
+   * @example "create" { "name": "Garden Sensors", "description": "Outdoor Dragino nodes" }
+   */
   rule create_sensor_community {
     select when sensor create_community
     pre {
@@ -114,6 +125,35 @@ Send sensor create_community to the Manifold pico to create a new sensor communi
     } else {
       error warn <<finish_sensor_community skipped: rcn=#{rcn} child_eci=#{child_eci} sensor_url=#{sensor_url}>>;
     }
+  }
+
+  // Manifold app channel (1.8 policy) allows manifold domain only. Widen it once so
+  // sensor create_community and getSensorCommunities work on the same ECI as Manifold APIs.
+  rule widen_manifold_app_channel {
+    select when wrangler ruleset_installed where event:attr("rids") >< ctx:rid
+    pre {
+      app = wrangler:channels().filter(function(c){
+        c{"name"} == "Manifold"
+          || (c{"tags"} >< "manifold" && c{"tags"} >< "app")
+      }).head();
+      eci = app{"id"};
+      tags = app{"tags"}.defaultsTo(["Manifold", "App"]);
+      ep = app{"eventPolicy"}.defaultsTo({"allow": [], "deny": []});
+      qp = app{"queryPolicy"}.defaultsTo({"allow": [], "deny": []});
+      ep_allow = ep{"allow"}.defaultsTo([]);
+      qp_allow = qp{"allow"}.defaultsTo([]);
+      has_sensor = ep_allow.filter(function(a){ a{"domain"} == "sensor" }).length() > 0;
+      has_bootstrap_q = qp_allow.filter(function(a){ a{"rid"} == meta:rid }).length() > 0;
+      new_ep = ep.put(["allow"], ep_allow.append([{"domain": "sensor", "name": "*"}]));
+      new_qp = qp.put(["allow"], qp_allow.append([{"rid": meta:rid, "name": "*"}]));
+    }
+    if eci && (not has_sensor || not has_bootstrap_q) then
+      wrangler:updateChannel(
+        eci,
+        tags,
+        not has_sensor => new_ep | ep,
+        not has_bootstrap_q => new_qp | qp
+      )
   }
 
   // Step 3: opt the community into notifications on the Manifold pico. From unset,

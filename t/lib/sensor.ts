@@ -2,6 +2,7 @@ import { toFileRulesetUrl } from "../../.manifold-api/t/lib/config.js";
 import { assertTruthy } from "../../.manifold-api/t/lib/assert.js";
 import {
   findChildUiByName,
+  flushRuleset,
   waitForInstalledRids,
   type ManifoldBootstrapContext,
 } from "../../.manifold-api/t/lib/bootstrap.js";
@@ -11,6 +12,7 @@ import {
   getCommunityThings,
   getManifoldAppEci,
   getThings,
+  waitForCommunityMembership,
   type ManifoldThingEntry,
 } from "../../.manifold-api/t/lib/manifold.js";
 import { THING_RULESETS } from "../../.manifold-api/t/lib/expected-rulesets.js";
@@ -62,20 +64,6 @@ export function sensorNetworkMountPath(state: RuntimeState): string {
   return mount.containerPath;
 }
 
-async function flushSensorRuleset(
-  state: RuntimeState,
-  rulesetFile: string
-): Promise<void> {
-  const url = toFileRulesetUrl(sensorNetworkMountPath(state), rulesetFile);
-  const resp = await fetch(
-    `${state.baseUrl}/api/flush?url=${encodeURIComponent(url)}`
-  );
-  if (!resp.ok) {
-    const body = await resp.text();
-    throw new Error(`Flush ${rulesetFile} failed (${resp.status}): ${body}`);
-  }
-}
-
 async function installSensorRuleset(
   state: RuntimeState,
   uiEci: string,
@@ -100,7 +88,11 @@ export async function setupSensorNetworkBootstrap(
   bootstrap: ManifoldBootstrapContext
 ): Promise<void> {
   const { manifoldUiEci } = bootstrap;
-  await flushSensorRuleset(state, SENSOR_NETWORK_BOOTSTRAP_RS);
+  const bootstrapUrl = toFileRulesetUrl(
+    sensorNetworkMountPath(state),
+    SENSOR_NETWORK_BOOTSTRAP_RS
+  );
+  await flushRuleset(state, manifoldUiEci, bootstrapUrl);
   await installSensorRuleset(state, manifoldUiEci, SENSOR_NETWORK_BOOTSTRAP_RS);
   await waitForInstalledRids(
     state,
@@ -166,15 +158,34 @@ async function waitForManifoldThingEntry(
   );
 }
 
+/** Manifold community↔thing link name (see io.picolabs.community thingMemberName). */
+export function communityThingLinkName(
+  communityName: string,
+  thingName: string
+): string {
+  return `${communityName}:${thingName}`;
+}
+
 export async function waitForCommunityHasThing(
   state: RuntimeState,
   communityQueryEci: string,
-  thingName: string
+  thingName: string,
+  communityName?: string
 ): Promise<void> {
+  const linkName = communityName
+    ? communityThingLinkName(communityName, thingName)
+    : null;
   await waitFor(
     async () => {
       const things = await getCommunityThings(state, communityQueryEci);
-      if (things.some(t => t.name === thingName)) {
+      if (
+        things.some(
+          t =>
+            t.name === thingName ||
+            (linkName && t.name === linkName) ||
+            (linkName && t.name?.endsWith(`:${thingName}`))
+        )
+      ) {
         return true;
       }
       return null;
@@ -245,7 +256,8 @@ export async function createSensorThing(
   communityQueryEci: string,
   appEci: string,
   name: string,
-  sensorType: string
+  sensorType: string,
+  communityName?: string
 ): Promise<{ entry: ManifoldThingEntry; uiEci: string; thingQueryEci: string }> {
   const sensorEci = await getCommunitySensorEci(state, communityUiEci);
   await signalWait(state, sensorEci, "sensor", "initiation", {
@@ -254,7 +266,10 @@ export async function createSensorThing(
   });
 
   const entry = await waitForManifoldThingEntry(state, appEci, name);
-  await waitForCommunityHasThing(state, communityQueryEci, name);
+  await waitForCommunityMembership(state, entry.Tx, communityQueryEci, true);
+  if (communityName) {
+    await waitForCommunityHasThing(state, communityQueryEci, name, communityName);
+  }
 
   const uiEci = await waitFor(
     async () => findChildUiByName(state, bootstrap.manifoldUiEci, name),

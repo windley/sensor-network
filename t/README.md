@@ -176,7 +176,7 @@ graph so in-process fixtures (community → initiation) stay shared.
 
 After Manifold bootstrap, `run.ts` calls:
 
-1. `setupSensorNetworkBootstrap(state, bootstrap)` — flush and install
+1. `setupSensorNetworkBootstrap(state, bootstrap)` — flush (via root UI `engine_ui/flush`, same as manifold-api harness) and install
    `io.picolabs.sensor.network_bootstrap` on the Manifold pico.
 2. Scenarios use `createSensorCommunity(state, bootstrap, name, description?)` — sends
    `sensor create_community` and waits for the community child plus

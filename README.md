@@ -6,7 +6,7 @@ Supported hardware today is **Dragino** LoRaWAN sensors (LHT65, LSE01, LSN50, WL
 
 **Prerequisite:** a bootstrapped Manifold installation ([`manifold-api`](../manifold-api) — tag registry, owner pico, Manifold pico with `io.picolabs.manifold_pico`, notifications, and base `io.picolabs.thing` / `io.picolabs.community` rulesets).
 
-Integration tests: [`t/README.md`](t/README.md).
+Integration tests: [`t/README.md`](t/README.md). Discovery annotations: [`docs/DISCOVERY.md`](docs/DISCOVERY.md).
 
 ## How this repo uses Manifold
 
@@ -36,6 +36,7 @@ After Manifold itself is bootstrapped, install **`io.picolabs.sensor.network_boo
 - Installs **`io.picolabs.sensor.community`** on each new community child
 - Records communities in `ent:sensor_communities` (query via `getSensorCommunities()`)
 - Enables notification channels for each community (default: Manifold inbox only)
+- Extends the Manifold **app** channel policy so `sensor` events and `getSensorCommunities` queries work on the same ECI as `getThings` / `getCommunities` (required after Manifold 1.8 app-channel narrowing)
 
 ### 2. Create a sensor community
 
