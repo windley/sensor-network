@@ -8,7 +8,7 @@ Shared events and queries in this repo use KRL `/** … */` doc comments so the 
 |---------|----------------|
 | `io.picolabs.sensor.network_bootstrap` | Query `getSensorCommunities`; event `sensor create_community` |
 | `io.picolabs.sensor.community` | Queries `children`, `sensorThings`, `readings`, `lastTemperatures`, `test_push`; events `sensor initiation`, `readings clear` |
-| `io.picolabs.sensor.temperatures_view` | Query `latestTemperatures`; view `temperatures` |
+| `io.picolabs.sensor.temperatures_view` | Query `latestTemperatures`; view `temperatures`; event `config new_relationship` |
 | `io.picolabs.sensor.thresholds` | Query `thresholds`; events `sensor new_threshold`, `sensor threshold_not_needed` |
 | `io.picolabs.dragino` | Queries `get_payload`, `cToF`, `fix_temperatures`, `get_battery_status`, `get_battery_value` |
 | `io.picolabs.iotplotter` | Queries `show_configuration`, `README`; event `sensor configuration` |

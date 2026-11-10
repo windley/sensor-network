@@ -99,7 +99,7 @@ To add a sensor type, register it in `rids_to_install` inside `io.picolabs.senso
 
 ### Temperature view
 
-Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. Request a relationship to the community (`wrangler` / `subscription`) with `Rx_role` `temperature_view` and `Tx_role` `community`, and approve it on the community. The install creates an app channel. Open `/ui/<that-eci>/io.picolabs.sensor.temperatures_view/`. The page queries this pico; this pico calls the community's `lastTemperatures`.
+Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. On that pico raise `config new_relationship` with `webvh` set to the community's did:webvh, then approve the invite on the community. The install creates an app channel that allows that event. Open `/ui/<that-eci>/io.picolabs.sensor.temperatures_view/`. The page queries this pico; this pico calls the community's `lastTemperatures`.
 
 ## Dependencies
 

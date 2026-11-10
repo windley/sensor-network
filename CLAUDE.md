@@ -23,7 +23,7 @@ Rules that follow: never reach past Manifold to wrangler/engine for lifecycle wo
 | `io.picolabs.sensor.thresholds` | Thing picos | Threshold monitoring |
 | `io.picolabs.dragino`, `io.picolabs.iotplotter` | Thing picos | Shared Dragino decode helpers; plotting hooks |
 | `io.picolabs.<type>.router` (lht65, lse01, lsn50, wl03a_lb) | Thing picos | Per-type payload decode → `sensor` events. `rids_to_install` is chosen by `type` at initiation |
-| `io.picolabs.sensor.temperatures_view` | A pico created for the display | XMLUI page. Relationship to the community with `Tx_role` `community`; calls `lastTemperatures` via `subscription:queryOnSub`. Not installed on the community or a thing |
+| `io.picolabs.sensor.temperatures_view` | A pico created for the display | XMLUI page. `config new_relationship` with the community's did:webvh sends a Layer 2 invite (`Rx_role` `temperature_view`, `Tx_role` `community`). Calls `lastTemperatures` via `subscription:queryOnSub`. Not installed on the community or a thing |
 | `custom_components/pico_mesh_sensor_network/` | Home Assistant | HACS custom component that reads the mesh; `hacs.json` at root |
 
 Full event flow with diagram: `README.md`. Both bootstrap steps go through the Manifold **app channel**; the UI channel's event policy blocks the `sensor` domain.

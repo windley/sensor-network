@@ -4,11 +4,11 @@
  * Install on a pico created for this page, along with `io.picolabs.xmlui`.
  * Do not install it on the community or on a sensor thing.
  *
- * From this pico, request a relationship to the community
- * (`wrangler` event `subscription`) with `Rx_role` `temperature_view` and
- * `Tx_role` `community`, then approve it on the community. The page reads
- * `lastTemperatures` over that relationship. The role is not `thing`, so the
- * community does not treat this pico as a sensor.
+ * Raise `config new_relationship` with `webvh` set to the community pico's
+ * did:webvh. This pico sends a Layer 2 invite: its role is `temperature_view`
+ * and the community's role is `community`. Approve the invite on the community.
+ * The page reads `lastTemperatures` over that relationship. The role is not
+ * `thing`, so the community does not treat this pico as a sensor.
  *
  * Open `/ui/<app-eci>/io.picolabs.sensor.temperatures_view/`.
  */
@@ -27,6 +27,7 @@ ruleset io.picolabs.sensor.temperatures_view {
   global {
     community_rid = "io.picolabs.sensor.community"
     community_role = "community"
+    view_role = "temperature_view"
     channel_tags = ["temperatures_view", "app"]
 
     /**
@@ -87,9 +88,33 @@ ruleset io.picolabs.sensor.temperatures_view {
     }
   }
 
+  /**
+   * Invite the sensor community identified by webvh.
+   * The invite stays outbound until the community approves it.
+   * @attr webvh String "the community pico's did:webvh"
+   * @example "community" { "webvh": "did:webvh:example" }
+   */
+  rule invite_community {
+    select when config new_relationship
+    pre {
+      webvh = event:attr("webvh")
+    }
+    if webvh then noop()
+    fired {
+      raise wrangler event "subscription" attributes {
+        "layer2": true,
+        "target_did": webvh,
+        "name": "temperature view",
+        "Rx_role": view_role,
+        "Tx_role": community_role
+      }
+    }
+  }
+
   rule create_app_channel {
     select when wrangler ruleset_installed where event:attr("rids") >< meta:rid
     // queries null allows every shared function, including the @view query.
-    ui:create_app_channel(channel_tags, ["temperature_view"], null, meta:rid)
+    // config allows new_relationship on this channel.
+    ui:create_app_channel(channel_tags, ["temperature_view", "config"], null, meta:rid)
   }
 }
