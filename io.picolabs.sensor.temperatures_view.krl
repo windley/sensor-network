@@ -29,6 +29,10 @@ ruleset io.picolabs.sensor.temperatures_view {
     community_role = "community"
     view_role = "temperature_view"
     channel_tags = ["temperatures_view", "app"]
+    // Named explicitly. A null query list is taken from rulesetSchema at
+    // install, and an empty list leaves the channel with only xmlui/file.
+    // file() then returns null for Main.xmlui.
+    app_queries = ["latestTemperatures", "temperatures"]
 
     /**
      * Format a UTC epoch-millisecond timestamp as Mountain Standard Time.
@@ -113,8 +117,7 @@ ruleset io.picolabs.sensor.temperatures_view {
 
   rule create_app_channel {
     select when wrangler ruleset_installed where event:attr("rids") >< meta:rid
-    // queries null allows every shared function, including the @view query.
     // config allows new_relationship on this channel.
-    ui:create_app_channel(channel_tags, ["temperature_view", "config"], null, meta:rid)
+    ui:create_app_channel(channel_tags, ["temperature_view", "config"], app_queries, meta:rid)
   }
 }
