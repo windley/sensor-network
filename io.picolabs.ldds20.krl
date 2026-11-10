@@ -38,11 +38,18 @@ Received and decodes heartbeat information from a Dragino LDDS20 liquid level se
        }
      }];
 
-    // API functions
+    /**
+     * Most recent uplink, or null before the first heartbeat.
+     * @returns Map
+     */
     lastHeartbeat = function() {
       ent:lastHeartbeat.klog("Return value ")
     }
 
+    /**
+     * Distance to the liquid surface (mm) from the last decoded uplink.
+     * @returns Number
+     */
     lastLiquidLevel = function() {
       ent:lastLiquidLevel
     }
@@ -66,6 +73,13 @@ Received and decodes heartbeat information from a Dragino LDDS20 liquid level se
 // after cooking steak (20 min): 537mm
 
 
+  /**
+   * Decode an LDDS20 uplink and raise sensor new_readings.
+   * @attr payload String "base64 LoRaWAN payload"
+   * @attr name String optional "device name; falls back to the pico name"
+   * @attr uuid String optional "uplink id"
+   * @attr reported_at Number optional "epoch milliseconds"
+   */
   rule process_heartbeat {
       select when ldds20 heartbeat
       pre {

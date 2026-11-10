@@ -40,7 +40,10 @@ Received and decodes heartbeat information from a Dragino WL03A-LB Leak Detector
        }
      }];
 
-    // API functions
+    /**
+     * Most recent uplink, or null before the first heartbeat.
+     * @returns Map
+     */
     lastHeartbeat = function() {
       ent:lastHeartbeat.klog("Return value ")
     }
@@ -68,6 +71,12 @@ Received and decodes heartbeat information from a Dragino WL03A-LB Leak Detector
 // after cooking steak (20 min): 537mm
 
 
+  /**
+   * Decode a WL03A-LB uplink. Seven bytes raise sensor new_status; eleven bytes raise sensor new_data.
+   * @attr payload String "base64 LoRaWAN payload"
+   * @attr payload_size Number "7 for device status, 11 for leak status"
+   * @attr reported_at Number optional "epoch milliseconds"
+   */
   rule process_heartbeat {
       select when wl03a_lb heartbeat
       pre {

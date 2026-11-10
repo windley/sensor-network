@@ -37,23 +37,42 @@ Received and decodes heartbeat information from a Dragino LHT65
        }
      }];
 
-    // API functions
+    /**
+     * Most recent uplink, or null before the first heartbeat.
+     * @returns Map
+     */
     lastHeartbeat = function() {
       ent:lastHeartbeat.klog("Return value ")
     } 
 
+    /**
+     * Relative humidity from the last decoded uplink.
+     * @returns Number
+     */
     lastHumidity = function() {
       ent:lastHumidity
     }
     
+    /**
+     * Built-in temperature (F) from the last decoded uplink.
+     * @returns Number
+     */
     lastInternalTemp = function() {
       ent:lastInternalTemp
     }
 
+    /**
+     * Built-in temperature (F). Same reading as lastInternalTemp.
+     * @returns Number
+     */
     lastTemperature = function() {
       ent:lastInternalTemp
     }
 
+    /**
+     * External probe temperature (F), cleared when no probe is connected.
+     * @returns Number
+     */
     lastProbeTemp = function() {
       ent:lastProbeTemp
     }
@@ -120,6 +139,12 @@ Received and decodes heartbeat information from a Dragino LHT65
     }
   }
 
+  /**
+   * Decode an LHT65 uplink and raise sensor new_readings.
+   * The uplink's name, uuid, and reported_at are copied onto that event.
+   * @attr payload String "base64 LoRaWAN payload"
+   * @example "uplink" { "payload": "y7AJrwD2AQj1f/8=" }
+   */
   rule process_heartbeat {
       select when lht65 heartbeat
       pre {

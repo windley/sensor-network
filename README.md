@@ -93,8 +93,13 @@ Sensor readings and threshold violations flow back through the community subscri
 | `io.picolabs.lse01.router` | LSE01 things | Decode LSE01 payloads |
 | `io.picolabs.lsn50.router` | LSN50 things | Decode LSN50 payloads |
 | `io.picolabs.wl03a_lb.router` | WL03A-LB things | Decode WL03A-LB payloads |
+| `io.picolabs.sensor.temperatures_view` | A pico created for the display | XMLUI page of one community's `lastTemperatures` |
 
 To add a sensor type, register it in `rids_to_install` inside `io.picolabs.sensor.community.krl` and add a router ruleset to this repo.
+
+### Temperature view
+
+Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. Request a relationship to the community (`wrangler` / `subscription`) with `Rx_role` `temperature_view` and `Tx_role` `community`, and approve it on the community. The install creates an app channel. Open `/ui/<that-eci>/io.picolabs.sensor.temperatures_view/`. The page queries this pico; this pico calls the community's `lastTemperatures`.
 
 ## Dependencies
 

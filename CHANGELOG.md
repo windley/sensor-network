@@ -4,6 +4,11 @@ All notable changes to sensor-network rulesets and the Home Assistant companion.
 
 ## [Unreleased]
 
+### Added
+
+- **`io.picolabs.sensor.temperatures_view`** — XMLUI page for a pico created to display one community. Reads `lastTemperatures` over a relationship whose `Tx_role` is `community`, and shows each reading time as MST.
+- **Schema annotations** on the shared queries and operator events of the router, threshold, Dragino, IoTPlotter, and community rulesets. `sensorThings` is now a shared query so its annotation is part of the ruleset schema.
+
 ## [1.1.0] - 2026-10-26
 
 Release aligned with **Manifold 1.8** and **pico-engine 1.8** (discovery annotations, `picoQuery` args map, Manifold app-channel policy).

@@ -12,7 +12,8 @@ ruleset io.picolabs.sensor.community {
      
     shares
       test_push,
-      children, 
+      children,
+      sensorThings,
       readings,
       lastTemperatures
       
@@ -51,6 +52,10 @@ ruleset io.picolabs.sensor.community {
        }
      }];
 
+    /**
+     * Child picos of this community.
+     * @returns Array
+     */
     children = function() {
       wrangler:children()
     }
@@ -222,6 +227,10 @@ ruleset io.picolabs.sensor.community {
       new_element.append(new_array.klog("new array"))
     }
 
+    /**
+     * Exercise the push helper. Result is a log message; inspect the pico log.
+     * @returns String
+     */
     test_push = function() {
       a_s = [0,1,2,3,4,5,6,7,8,9,10,11,12];
       new_a_s = a_s.push(15).klog("one item on 13 element array, should be [15,0,1,2,3,4,5,6,7,8]; is ")
@@ -236,9 +245,9 @@ ruleset io.picolabs.sensor.community {
     }
 
     /**
-     * Stored reading history for one sensor name, or all sensors when name is omitted.
-     * @attr name String optional "sensor_name key used in ent:sensor_readings"
-     * @returns Array or Map
+     * Stored reading history for one sensor name, or every sensor when name is null.
+     * @param name String "sensor_name key in ent:sensor_readings; null returns the whole map"
+     * @returns Any
      */
     readings = function(name) {
       name => ent:sensor_readings{name}
@@ -304,6 +313,13 @@ ruleset io.picolabs.sensor.community {
     }
   }
 
+  /**
+   * Drop stored history for one sensor name.
+   * @attr name String optional "sensor_name key"
+   * @attr sensor_name String optional "same key, alternate attr"
+   * @attr entity String optional "same key, alternate attr"
+   * @example "one sensor" { "name": "Shed LHT65" }
+   */
   rule clear_readings {
     select when readings clear
     pre {

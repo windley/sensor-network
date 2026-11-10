@@ -42,19 +42,34 @@ Received and decodes heartbeat information from a Dragino LSE01 (soil sensor)
     fix_temperatures = function(x){(x < 32768 => x | x-65536)/100}; 
 
 
-    // API functions
+    /**
+     * Base64 payload from the most recent uplink, or null before the first heartbeat.
+     * @returns String
+     */
     lastHeartbeat = function() {
       ent:lastHeartbeat.klog("Return value ")
     }
 
+    /**
+     * Soil moisture (percent) from the last decoded uplink.
+     * @returns Number
+     */
     lastMoisture = function() {
       ent:lastMoisture
     }
     
+    /**
+     * Soil temperature (F) from the last decoded uplink.
+     * @returns Number
+     */
     lastTemperature = function() {
       ent:lastTemperature
     }
 
+    /**
+     * Soil conductivity (uS/cm) from the last decoded uplink.
+     * @returns Number
+     */
     lastConductivity = function() {
       ent:lastConductivity
     }
@@ -75,6 +90,11 @@ Received and decodes heartbeat information from a Dragino LSE01 (soil sensor)
   }
 
 
+  /**
+   * Decode an LSE01 uplink and raise sensor new_readings.
+   * The uplink's name, uuid, and reported_at are copied onto that event.
+   * @attr payload String "base64 LoRaWAN payload"
+   */
   rule process_heartbeat {
       select when lse01 heartbeat
       pre {

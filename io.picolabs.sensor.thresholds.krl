@@ -16,7 +16,11 @@ ruleset io.picolabs.sensor.thresholds {
 
   global {
 
-    // public
+    /**
+     * Saved limits for one reading name, or every threshold when threshold_type is null.
+     * @param threshold_type String "reading name, such as temperature"
+     * @returns Any
+     */
     thresholds = function(threshold_type) {
       threshold_type => ent:thresholds{threshold_type}
                       | ent:thresholds
@@ -27,7 +31,13 @@ ruleset io.picolabs.sensor.thresholds {
     }
   }
 
-  // rule to save thresholds
+  /**
+   * Save upper and lower limits for one reading name.
+   * @attr threshold_type String "reading name, such as temperature"
+   * @attr upper_limit Number optional "violation when a reading is above this"
+   * @attr lower_limit Number optional "violation when a reading is below this"
+   * @example "temperature" { "threshold_type": "temperature", "upper_limit": 100, "lower_limit": 50 }
+   */
   rule save_threshold {
     select when sensor new_threshold
     pre {
@@ -45,6 +55,11 @@ ruleset io.picolabs.sensor.thresholds {
     }
   }
 
+  /**
+   * Remove the saved limits for one reading name.
+   * @attr threshold_type String "reading name to clear"
+   * @example "temperature" { "threshold_type": "temperature" }
+   */
   rule clear_threshold {
     select when sensor threshold_not_needed
     always {

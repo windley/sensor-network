@@ -37,13 +37,19 @@ ruleset io.picolabs.iotplotter {
       return resp
     }
 
-    // Sole source of truth for the effective IoTPlotter configuration:
-    // ruleset config takes precedence, falling back to entity variables.
+    /**
+     * Effective IoTPlotter feed. Ruleset config wins, then entity variables.
+     * @returns Map
+     */
     show_configuration = function() {
       return {"api_key": meta:rulesetConfig{["api_key"]} || ent:api_key,
               "feed_id": meta:rulesetConfig{["feed_id"]} || ent:feed_id}
     }
 
+    /**
+     * Note on entering a feed id in the developer UI.
+     * @returns String
+     */
     README = function() {
       return <<
 IoTPlotter feed_id's are just digits. The pico enginer UI will parse them as INTs (using JSON.parse()) unless you enclose them in quotes (e.g. "367832564114515476")
@@ -68,7 +74,13 @@ IoTPlotter feed_id's are just digits. The pico enginer UI will parse them as INT
     }
   }
 
-  // put the feed id in quotes when using the testing tab to ensure it's treated as a string
+  /**
+   * Store the IoTPlotter feed id and API key on this pico.
+   * Quote the feed id in the testing tab so it stays a string.
+   * @attr iotplotter_feed_id String "feed id digits"
+   * @attr iotplotter_api_key String "IoTPlotter API key"
+   * @example "feed" { "iotplotter_feed_id": "367832564114515476", "iotplotter_api_key": "replace-me" }
+   */
   rule save_config {
     select when sensor configuration
     pre {

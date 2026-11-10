@@ -37,23 +37,42 @@ Received and decodes heartbeat information from a Dragino LSN50
        }
      }]; 
 
-    // API functions
+    /**
+     * Most recent uplink, or null before the first heartbeat.
+     * @returns Map
+     */
     lastHeartbeat = function() {
       ent:lastHeartbeat.klog("Return value ")
     }
 
+    /**
+     * White-probe temperature (F). Same reading as lastTemperature_01.
+     * @returns Number
+     */
     lastTemperature = function() {
       ent:lastTemperature_01
     }
 
+    /**
+     * White-probe temperature (F) from the last decoded uplink.
+     * @returns Number
+     */
     lastTemperature_01 = function() {
       ent:lastTemperature_01
     }
     
+    /**
+     * Red-probe temperature (F) from the last decoded uplink.
+     * @returns Number
+     */
     lastTemperature_02 = function() {
       ent:lastTemperature_02
     }
     
+    /**
+     * Black-probe temperature (F) from the last decoded uplink.
+     * @returns Number
+     */
     lastTemperature_03 = function() {
       ent:lastTemperature_03
     }
@@ -77,6 +96,13 @@ Received and decodes heartbeat information from a Dragino LSN50
     }
   }
 
+  /**
+   * Decode an LSN50 uplink and raise sensor new_readings.
+   * A payload_size other than 11 is ignored. The uplink's name, uuid, and
+   * reported_at are copied onto that event.
+   * @attr payload String "base64 LoRaWAN payload"
+   * @attr payload_size Number "byte length; 11 is the temperature frame"
+   */
   rule process_heartbeat {
       select when lsn50 heartbeat
       pre {
