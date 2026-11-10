@@ -11,9 +11,10 @@
  * `thing`, so the community does not treat this pico as a sensor.
  *
  * Open `/ui/<app-eci>/io.picolabs.sensor.temperatures_view/`.
- * Settings stores an access token for this browser tab. Mint it on the
- * temperatures app channel after tagging that channel oauth-webhook.
- * The view shell sends it as the bearer on latestTemperatures.
+ * Settings stores an access token and a time zone (PST, MST, CST, or EST)
+ * for this browser tab. Mint the token on the temperatures app channel
+ * after tagging that channel oauth-webhook. The view shell sends the token
+ * as the bearer on latestTemperatures. Reading times use standard time.
  */
 ruleset io.picolabs.sensor.temperatures_view {
   meta {
@@ -38,26 +39,36 @@ ruleset io.picolabs.sensor.temperatures_view {
     app_queries = ["latestTemperatures", "temperatures"]
 
     /**
-     * Format a UTC epoch-millisecond timestamp as Mountain Standard Time.
-     * `time:new` returns an ISO-8601 UTC string. Subtracting the offset first
-     * makes the date and clock in that string the MST reading time.
+     * Format a UTC epoch-millisecond timestamp in a US standard time zone.
+     * `time:new` returns an ISO-8601 UTC string. Subtracting the zone's
+     * offset first makes the date and clock in that string that zone's time.
+     * PST is UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Anything else is MST.
      * @param timestamp Number milliseconds since the Unix epoch
-     * @returns String "YYYY-MM-DD HH:MM:SS MST"
+     * @param zone String "PST, MST, CST, or EST"
+     * @returns String "YYYY-MM-DD HH:MM:SS ZZZ"
      */
-    readingAtMst = function(timestamp) {
-      mst_offset_ms = 7 * 60 * 60 * 1000
-      iso = time:new(timestamp - mst_offset_ms)
+    readingAtInZone = function(timestamp, zone) {
+      name = zone == "PST" => "PST" |
+        zone == "CST" => "CST" |
+        zone == "EST" => "EST" |
+        "MST"
+      hours = name == "PST" => 8 |
+        name == "CST" => 6 |
+        name == "EST" => 5 |
+        7
+      iso = time:new(timestamp - hours * 60 * 60 * 1000)
       date = iso.split("T")[0]
       clock = iso.split("T")[1].split(".")[0]
-      date + " " + clock + " MST"
+      date + " " + clock + " " + name
     }
 
     /**
      * Latest temperature for each sensor in the linked community.
      * Empty until a relationship with Tx_role "community" is established.
+     * @param zone String "PST, MST, CST, or EST. Defaults to MST."
      * @returns Array of { name, lastTemperature, readingAt, timestamp }
      */
-    latestTemperatures = function() {
+    latestTemperatures = function(zone) {
       bus = subscription:established("Tx_role", community_role).head()
       rows = bus.isnull() => [] |
         subscription:queryOnSub(
@@ -70,7 +81,7 @@ ruleset io.picolabs.sensor.temperatures_view {
         rows.typeof() == "Array" => rows | []
       list.map(function(row) {
         ts = row{"timestamp"}
-        ts.isnull() => row | row.put("readingAt", readingAtMst(ts))
+        ts.isnull() => row | row.put("readingAt", readingAtInZone(ts, zone))
       })
     }
 
@@ -79,25 +90,29 @@ ruleset io.picolabs.sensor.temperatures_view {
      * @view "Temperatures"
      */
     temperatures = function() {
-      source = "<DataSource id=\"readings\" url=\"" +
-        ui:query_url("latestTemperatures", meta:rid, meta:eci) +
-        "\" headers=\"{appGlobals.auth}\" pollIntervalInSeconds=\"60\" />"
+      readings_url = ui:query_url("latestTemperatures", meta:rid, meta:eci)
       <<<Component name="Temperatures">
-  #{source}
+  <DataSource id="readings" url="{'#{readings_url}?zone=' + (sessionStorage.getItem('picoViewZone') || 'MST')}" headers="{appGlobals.auth}" pollIntervalInSeconds="60" />
   <HStack horizontalAlignment="end">
-    <Button label="Settings" onClick="bearerSettings.open()" />
+    <Button label="Settings" onClick="viewSettings.open()" />
   </HStack>
-  <ModalDialog id="bearerSettings" title="Bearer token">
-    <Form saveLabel="Save" onSubmit="(data) => { sessionStorage.setItem('picoViewBearer', (data.bearer || '').trim()); location.reload(); }">
+  <ModalDialog id="viewSettings" title="Settings">
+    <Form saveLabel="Save" onSubmit="(data) => { sessionStorage.setItem('picoViewBearer', (data.bearer || '').trim()); sessionStorage.setItem('picoViewZone', data.zone || 'MST'); location.reload(); }">
+      <FormItem bindTo="zone" label="Time zone" type="select" initialValue="{sessionStorage.getItem('picoViewZone') || 'MST'}">
+        <Option value="PST" label="PST" />
+        <Option value="MST" label="MST" />
+        <Option value="CST" label="CST" />
+        <Option value="EST" label="EST" />
+      </FormItem>
       <FormItem bindTo="bearer" label="Access token" type="password" initialValue="{sessionStorage.getItem('picoViewBearer') || ''}" />
-      <Text value="Mint this on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps it and sends it on the temperature query." />
+      <Text value="Times use standard time: PST UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Mint the access token on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps both settings." />
     </Form>
   </ModalDialog>
-  <Card title="Temperatures" subtitle="Latest reading from each sensor, shown as MST" />
+  <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST')}" />
   <Table data="{readings}">
     <Column bindTo="name" header="Sensor" />
     <Column bindTo="lastTemperature" header="Temp (F)" />
-    <Column bindTo="readingAt" header="Reading at (MST)" />
+    <Column bindTo="readingAt" header="{'Reading at (' + (sessionStorage.getItem('picoViewZone') || 'MST') + ')'}" />
   </Table>
 </Component>
 >>
