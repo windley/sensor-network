@@ -6,7 +6,7 @@ All notable changes to sensor-network rulesets and the Home Assistant companion.
 
 ### Added
 
-- **`io.picolabs.sensor.temperatures_view`** — XMLUI page for a pico created to display one community. `config new_relationship` with the community's did:webvh sends a Layer 2 invite. The page reads `lastTemperatures` over the established relationship and shows each reading time as MST.
+- **`io.picolabs.sensor.temperatures_view`** — XMLUI page for a pico created to display one community. `config new_relationship` with the community's did:webvh sends a Layer 2 invite. The page reads `lastTemperatures` over the established relationship and shows each reading time as MST. Settings stores the app channel's access token in the browser tab and the view shell sends it on the temperature query.
 - **Schema annotations** on the shared queries and operator events of the router, threshold, Dragino, IoTPlotter, and community rulesets. `sensorThings` is now a shared query so its annotation is part of the ruleset schema.
 
 ## [1.1.0] - 2026-10-26

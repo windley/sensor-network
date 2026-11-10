@@ -11,6 +11,9 @@
  * `thing`, so the community does not treat this pico as a sensor.
  *
  * Open `/ui/<app-eci>/io.picolabs.sensor.temperatures_view/`.
+ * Settings stores an access token for this browser tab. Mint it on the
+ * temperatures app channel after tagging that channel oauth-webhook.
+ * The view shell sends it as the bearer on latestTemperatures.
  */
 ruleset io.picolabs.sensor.temperatures_view {
   meta {
@@ -81,6 +84,15 @@ ruleset io.picolabs.sensor.temperatures_view {
         "\" headers=\"{appGlobals.auth}\" pollIntervalInSeconds=\"60\" />"
       <<<Component name="Temperatures">
   #{source}
+  <HStack horizontalAlignment="end">
+    <Button label="Settings" onClick="bearerSettings.open()" />
+  </HStack>
+  <ModalDialog id="bearerSettings" title="Bearer token">
+    <Form saveLabel="Save" onSubmit="(data) => { sessionStorage.setItem('picoViewBearer', (data.bearer || '').trim()); location.reload(); }">
+      <FormItem bindTo="bearer" label="Access token" type="password" initialValue="{sessionStorage.getItem('picoViewBearer') || ''}" />
+      <Text value="Mint this on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps it and sends it on the temperature query." />
+    </Form>
+  </ModalDialog>
   <Card title="Temperatures" subtitle="Latest reading from each sensor, shown as MST" />
   <Table data="{readings}">
     <Column bindTo="name" header="Sensor" />
