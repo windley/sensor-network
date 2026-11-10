@@ -86,7 +86,8 @@ ruleset io.picolabs.sensor.temperatures_view {
     }
 
     /**
-     * Community temperatures, refreshed about once a minute.
+     * Community temperatures. The page polls about once a minute.
+     * Refresh asks for the latest readings without reloading the page.
      * @view "Temperatures"
      */
     temperatures = function() {
@@ -94,7 +95,8 @@ ruleset io.picolabs.sensor.temperatures_view {
       <<<Component name="Temperatures">
   <Theme themeId="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'green' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark') ? 'xmlui-green' : ((sessionStorage.getItem('picoViewTheme') || 'default') === 'gray' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'xmlui-gray' : 'xmlui'}" tone="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'dark' : 'light'}">
   <DataSource id="readings" url="{'#{readings_url}?zone=' + (sessionStorage.getItem('picoViewZone') || 'MST')}" headers="{appGlobals.auth}" pollIntervalInSeconds="60" />
-  <HStack horizontalAlignment="end">
+  <HStack horizontalAlignment="end" gap="$space-2">
+    <Button label="Refresh" onClick="readings.refetch()" />
     <Button label="Settings" onClick="viewSettings.open()" />
   </HStack>
   <ModalDialog id="viewSettings" title="Settings">
