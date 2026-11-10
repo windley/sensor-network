@@ -117,12 +117,14 @@ ruleset io.picolabs.sensor.temperatures_view {
       <Text value="Times use standard time: PST UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Mint the access token on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps these settings." />
     </Form>
   </ModalDialog>
-  <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST')}" />
-  <Table data="{readings}">
-    <Column bindTo="name" header="Sensor" />
-    <Column bindTo="lastTemperature" header="Temp (F)" />
-    <Column bindTo="readingAt" header="{'Reading at (' + (sessionStorage.getItem('picoViewZone') || 'MST') + ')'}" />
-  </Table>
+  <VStack gap="0" backgroundColor="$color-surface-50">
+    <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST')}" />
+    <Table data="{readings}">
+      <Column bindTo="name" header="Sensor" />
+      <Column bindTo="lastTemperature" header="Temp (F)" />
+      <Column bindTo="readingAt" header="{'Reading at (' + (sessionStorage.getItem('picoViewZone') || 'MST') + ')'}" />
+    </Table>
+  </VStack>
   </Theme>
 </Component>
 >>
