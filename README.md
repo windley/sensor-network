@@ -101,7 +101,7 @@ To add a sensor type, register it in `rids_to_install` inside `io.picolabs.senso
 
 Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. On that pico raise `config new_relationship` with `webvh` set to the community's did:webvh, then approve the invite on the community. The install creates an app channel that allows that event. Open `/ui/<that-eci>/io.picolabs.sensor.temperatures_view/`. The page queries this pico; this pico calls the community's `lastTemperatures`.
 
-On a mesh that requires a bearer, tag that app channel `oauth-webhook`, mint an access token, and paste it under **Settings** on the page. Settings also chooses PST, MST, CST, or EST. The page keeps both in the browser tab, sends the token on the temperature query, and shows each reading time in the chosen standard-time zone. The default zone is MST.
+On a mesh that requires a bearer, tag that app channel `oauth-webhook`, mint an access token, and paste it under **Settings** on the page. Settings also chooses PST, MST, CST, or EST, and a theme (Default, Dark, Green, or Gray, each in light or dark). The page keeps these in the browser tab, sends the token on the temperature query, and shows each reading time in the chosen standard-time zone. The defaults are MST and the Default theme.
 
 ## Dependencies
 

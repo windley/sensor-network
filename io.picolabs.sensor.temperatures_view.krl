@@ -11,10 +11,10 @@
  * `thing`, so the community does not treat this pico as a sensor.
  *
  * Open `/ui/<app-eci>/io.picolabs.sensor.temperatures_view/`.
- * Settings stores an access token and a time zone (PST, MST, CST, or EST)
- * for this browser tab. Mint the token on the temperatures app channel
- * after tagging that channel oauth-webhook. The view shell sends the token
- * as the bearer on latestTemperatures. Reading times use standard time.
+ * Settings stores an access token, a time zone (PST, MST, CST, or EST), and
+ * a theme for this browser tab. Mint the token on the temperatures app
+ * channel after tagging that channel oauth-webhook. The view shell sends the
+ * token as the bearer on latestTemperatures. Reading times use standard time.
  */
 ruleset io.picolabs.sensor.temperatures_view {
   meta {
@@ -92,20 +92,29 @@ ruleset io.picolabs.sensor.temperatures_view {
     temperatures = function() {
       readings_url = ui:query_url("latestTemperatures", meta:rid, meta:eci)
       <<<Component name="Temperatures">
+  <Theme themeId="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'green' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark') ? 'xmlui-green' : ((sessionStorage.getItem('picoViewTheme') || 'default') === 'gray' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'xmlui-gray' : 'xmlui'}" tone="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'dark' : 'light'}">
   <DataSource id="readings" url="{'#{readings_url}?zone=' + (sessionStorage.getItem('picoViewZone') || 'MST')}" headers="{appGlobals.auth}" pollIntervalInSeconds="60" />
   <HStack horizontalAlignment="end">
     <Button label="Settings" onClick="viewSettings.open()" />
   </HStack>
   <ModalDialog id="viewSettings" title="Settings">
-    <Form saveLabel="Save" onSubmit="(data) => { sessionStorage.setItem('picoViewBearer', (data.bearer || '').trim()); sessionStorage.setItem('picoViewZone', data.zone || 'MST'); location.reload(); }">
+    <Form saveLabel="Save" onSubmit="(data) => { sessionStorage.setItem('picoViewBearer', (data.bearer || '').trim()); sessionStorage.setItem('picoViewZone', data.zone || 'MST'); sessionStorage.setItem('picoViewTheme', data.theme || 'default'); location.reload(); }">
       <FormItem bindTo="zone" label="Time zone" type="select" initialValue="{sessionStorage.getItem('picoViewZone') || 'MST'}">
         <Option value="PST" label="PST" />
         <Option value="MST" label="MST" />
         <Option value="CST" label="CST" />
         <Option value="EST" label="EST" />
       </FormItem>
+      <FormItem bindTo="theme" label="Theme" type="select" initialValue="{sessionStorage.getItem('picoViewTheme') || 'default'}">
+        <Option value="default" label="Default" />
+        <Option value="dark" label="Dark" />
+        <Option value="green" label="Green" />
+        <Option value="green-dark" label="Green, dark" />
+        <Option value="gray" label="Gray" />
+        <Option value="gray-dark" label="Gray, dark" />
+      </FormItem>
       <FormItem bindTo="bearer" label="Access token" type="password" initialValue="{sessionStorage.getItem('picoViewBearer') || ''}" />
-      <Text value="Times use standard time: PST UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Mint the access token on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps both settings." />
+      <Text value="Times use standard time: PST UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Mint the access token on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps these settings." />
     </Form>
   </ModalDialog>
   <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST')}" />
@@ -114,6 +123,7 @@ ruleset io.picolabs.sensor.temperatures_view {
     <Column bindTo="lastTemperature" header="Temp (F)" />
     <Column bindTo="readingAt" header="{'Reading at (' + (sessionStorage.getItem('picoViewZone') || 'MST') + ')'}" />
   </Table>
+  </Theme>
 </Component>
 >>
     }
