@@ -99,7 +99,7 @@ To add a sensor type, register it in `rids_to_install` inside `io.picolabs.senso
 
 ### Temperature view
 
-Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. On that pico raise `config new_relationship` with `webvh` set to the community's did:webvh, then approve the invite on the community. The install creates an app channel that allows that event. Open `/ui/<that-eci>/io.picolabs.sensor.temperatures_view/`. The page queries this pico; this pico calls the community's `lastTemperatures`.
+Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. On that pico raise `config new_relationship` with `webvh` set to the community's did:webvh, then approve the invite on the community. The install creates an app channel that allows that event. Query `viewUrl` on that pico for the page URL. The page queries this pico; this pico calls the community's `lastTemperatures`.
 
 On a mesh that requires a bearer, tag that app channel `oauth-webhook`, mint an access token, and paste it under **Settings** on the page. Settings also chooses PST, MST, CST, or EST, and a theme (Default, Dark, Green, or Gray, each in light or dark). The page keeps these in the browser tab, sends the token on the temperature query, and shows each reading time in the chosen standard-time zone. **Refresh** loads the latest readings without reloading the page. The page also polls about once a minute. The defaults are MST and the Default theme.
 

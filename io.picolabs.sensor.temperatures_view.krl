@@ -10,7 +10,8 @@
  * The page reads `lastTemperatures` over that relationship. The role is not
  * `thing`, so the community does not treat this pico as a sensor.
  *
- * Open `/ui/<app-eci>/io.picolabs.sensor.temperatures_view/`.
+ * Query `viewUrl` for the page URL. It is
+ * `/ui/<app-eci>/io.picolabs.sensor.temperatures_view/` on this engine.
  * Settings stores an access token, a time zone (PST, MST, CST, or EST), and
  * a theme for this browser tab. Mint the token on the temperatures app
  * channel after tagging that channel oauth-webhook. The view shell sends the
@@ -25,7 +26,7 @@ ruleset io.picolabs.sensor.temperatures_view {
     use module io.picolabs.subscription alias subscription
     use module io.picolabs.xmlui alias ui
 
-    shares latestTemperatures, temperatures
+    shares latestTemperatures, temperatures, viewUrl
   }
 
   global {
@@ -36,7 +37,18 @@ ruleset io.picolabs.sensor.temperatures_view {
     // Named explicitly. A null query list is taken from rulesetSchema at
     // install, and an empty list leaves the channel with only xmlui/file.
     // file() then returns null for Main.xmlui.
-    app_queries = ["latestTemperatures", "temperatures"]
+    app_queries = ["latestTemperatures", "temperatures", "viewUrl"]
+
+    /**
+     * Absolute URL of this temperature page.
+     * Null until the app channel exists.
+     * @returns String
+     */
+    viewUrl = function() {
+      path = ui:app_url(channel_tags, meta:rid)
+      host = meta:host.defaultsTo("").replace(re#/$#, "")
+      path.isnull() => null | host + path
+    }
 
     /**
      * Format a UTC epoch-millisecond timestamp in a US standard time zone.
