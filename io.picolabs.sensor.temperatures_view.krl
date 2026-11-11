@@ -38,6 +38,8 @@ ruleset io.picolabs.sensor.temperatures_view {
     // install, and an empty list leaves the channel with only xmlui/file.
     // file() then returns null for Main.xmlui.
     app_queries = ["latestTemperatures", "temperatures", "viewUrl"]
+    // Seconds between automatic reloads of the temperature table.
+    poll_seconds = 300
 
     /**
      * Absolute URL of this temperature page.
@@ -98,7 +100,7 @@ ruleset io.picolabs.sensor.temperatures_view {
     }
 
     /**
-     * Community temperatures. The page polls about once a minute.
+     * Community temperatures. The page polls every poll_seconds seconds.
      * Refresh asks for the latest readings without reloading the page.
      * @view "Temperatures"
      */
@@ -106,7 +108,7 @@ ruleset io.picolabs.sensor.temperatures_view {
       readings_url = ui:query_url("latestTemperatures", meta:rid, meta:eci)
       <<<Component name="Temperatures">
   <Theme themeId="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'green' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark') ? 'xmlui-green' : ((sessionStorage.getItem('picoViewTheme') || 'default') === 'gray' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'xmlui-gray' : 'xmlui'}" tone="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'dark' : 'light'}">
-  <DataSource id="readings" url="{'#{readings_url}?zone=' + (sessionStorage.getItem('picoViewZone') || 'MST')}" headers="{appGlobals.auth}" pollIntervalInSeconds="60" />
+  <DataSource id="readings" url="{'#{readings_url}?zone=' + (sessionStorage.getItem('picoViewZone') || 'MST')}" headers="{appGlobals.auth}" pollIntervalInSeconds="#{poll_seconds}" />
   <HStack horizontalAlignment="end" gap="$space-2">
     <Button label="Refresh" onClick="readings.refetch()" />
     <Button label="Settings" onClick="viewSettings.open()" />
@@ -132,7 +134,7 @@ ruleset io.picolabs.sensor.temperatures_view {
     </Form>
   </ModalDialog>
   <VStack gap="0" backgroundColor="$color-surface-50">
-    <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST')}" />
+    <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST') + '. Refreshed every 5 minutes'}" />
     <Table data="{readings}">
       <Column bindTo="name" header="Sensor" />
       <Column bindTo="lastTemperature" header="Temp (F)" />
