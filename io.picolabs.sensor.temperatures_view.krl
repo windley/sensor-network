@@ -26,7 +26,7 @@ ruleset io.picolabs.sensor.temperatures_view {
     use module io.picolabs.subscription alias subscription
     use module io.picolabs.xmlui alias ui
 
-    shares latestTemperatures, temperatures, viewUrl
+    shares latestTemperatures, temperatures, temperatureSettings, temperatureTable, viewUrl
   }
 
   global {
@@ -36,7 +36,8 @@ ruleset io.picolabs.sensor.temperatures_view {
     channel_tags = ["temperatures_view", "app"]
     // Named explicitly. A null query list is taken from rulesetSchema at
     // install, and an empty list leaves the channel with only xmlui/file.
-    // file() then returns null for Main.xmlui.
+    // file() then returns null for Main.xmlui. ui:create_app_channel adds
+    // the @component functions here and in io.picolabs.xmlui on its own.
     app_queries = ["latestTemperatures", "temperatures", "viewUrl"]
     // Seconds between automatic reloads of the temperature table.
     poll_seconds = 300
@@ -100,48 +101,69 @@ ruleset io.picolabs.sensor.temperatures_view {
     }
 
     /**
+     * Settings for this view: time zone, plus the shared theme and access
+     * token fields. Method: open().
+     * @component
+     */
+    temperatureSettings = function() {
+      <<
+<Component name="TemperatureSettings" method.open="() => inner.open()">
+  <PicoSettings id="inner"
+                note="Times use standard time: PST UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Mint the access token on the temperatures app channel after tagging it oauth-webhook.">
+    <FormItem bindTo="zone" label="Time zone" type="select"
+              initialValue="{sessionStorage.getItem('picoViewZone') || 'MST'}">
+      <Option value="PST" label="PST" />
+      <Option value="MST" label="MST" />
+      <Option value="CST" label="CST" />
+      <Option value="EST" label="EST" />
+    </FormItem>
+    <PicoThemeField />
+    <PicoAccessTokenField />
+  </PicoSettings>
+</Component>
+>>
+    }
+
+    /**
+     * Latest reading from each sensor.
+     * Props: rows (Array of { name, lastTemperature, readingAt }), zone.
+     * @component
+     */
+    temperatureTable = function() {
+      <<
+<Component name="TemperatureTable">
+  <VStack gap="0">
+    <Card title="Temperatures"
+          subtitle="{'Latest reading from each sensor, shown as ' + ($props.zone ?? 'MST') + '. Refreshed every #{poll_seconds / 60} minutes'}" />
+    <Table data="{$props.rows}">
+      <Column bindTo="name" header="Sensor" />
+      <Column bindTo="lastTemperature" header="Temp (F)" />
+      <Column bindTo="readingAt" header="{'Reading at (' + ($props.zone ?? 'MST') + ')'}" />
+    </Table>
+  </VStack>
+</Component>
+>>
+    }
+
+    /**
      * Community temperatures. The page polls every poll_seconds seconds.
      * Refresh asks for the latest readings without reloading the page.
      * @view "Temperatures"
      */
     temperatures = function() {
       readings_url = ui:query_url("latestTemperatures", meta:rid, meta:eci)
-      <<<Component name="Temperatures">
-  <Theme themeId="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'green' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark') ? 'xmlui-green' : ((sessionStorage.getItem('picoViewTheme') || 'default') === 'gray' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'xmlui-gray' : 'xmlui'}" tone="{((sessionStorage.getItem('picoViewTheme') || 'default') === 'dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'green-dark' || (sessionStorage.getItem('picoViewTheme') || 'default') === 'gray-dark') ? 'dark' : 'light'}">
-  <DataSource id="readings" url="{'#{readings_url}?zone=' + (sessionStorage.getItem('picoViewZone') || 'MST')}" headers="{appGlobals.auth}" pollIntervalInSeconds="#{poll_seconds}" />
-  <HStack horizontalAlignment="end" gap="$space-2">
-    <Button label="Refresh" onClick="readings.refetch()" />
-    <Button label="Settings" onClick="viewSettings.open()" />
-  </HStack>
-  <ModalDialog id="viewSettings" title="Settings">
-    <Form saveLabel="Save" onSubmit="(data) => { sessionStorage.setItem('picoViewBearer', (data.bearer || '').trim()); sessionStorage.setItem('picoViewZone', data.zone || 'MST'); sessionStorage.setItem('picoViewTheme', data.theme || 'default'); location.reload(); }">
-      <FormItem bindTo="zone" label="Time zone" type="select" initialValue="{sessionStorage.getItem('picoViewZone') || 'MST'}">
-        <Option value="PST" label="PST" />
-        <Option value="MST" label="MST" />
-        <Option value="CST" label="CST" />
-        <Option value="EST" label="EST" />
-      </FormItem>
-      <FormItem bindTo="theme" label="Theme" type="select" initialValue="{sessionStorage.getItem('picoViewTheme') || 'default'}">
-        <Option value="default" label="Default" />
-        <Option value="dark" label="Dark" />
-        <Option value="green" label="Green" />
-        <Option value="green-dark" label="Green, dark" />
-        <Option value="gray" label="Gray" />
-        <Option value="gray-dark" label="Gray, dark" />
-      </FormItem>
-      <FormItem bindTo="bearer" label="Access token" type="password" initialValue="{sessionStorage.getItem('picoViewBearer') || ''}" />
-      <Text value="Times use standard time: PST UTC-8, MST UTC-7, CST UTC-6, EST UTC-5. Mint the access token on the temperatures app channel after tagging it oauth-webhook. This browser tab keeps these settings." />
-    </Form>
-  </ModalDialog>
-  <VStack gap="0" backgroundColor="$backgroundColor">
-    <Card title="Temperatures" subtitle="{'Latest reading from each sensor, shown as ' + (sessionStorage.getItem('picoViewZone') || 'MST') + '. Refreshed every 5 minutes'}" />
-    <Table data="{readings}">
-      <Column bindTo="name" header="Sensor" />
-      <Column bindTo="lastTemperature" header="Temp (F)" />
-      <Column bindTo="readingAt" header="{'Reading at (' + (sessionStorage.getItem('picoViewZone') || 'MST') + ')'}" />
-    </Table>
-  </VStack>
-  </Theme>
+      <<
+<Component name="Temperatures" var.zone="{sessionStorage.getItem('picoViewZone') || 'MST'}">
+  <DataSource id="readings" url="{'#{readings_url}?zone=' + zone}"
+              headers="{appGlobals.auth}" pollIntervalInSeconds="#{poll_seconds}" />
+  <TemperatureSettings id="settings" />
+  <PicoTheme>
+    <HStack horizontalAlignment="end" gap="$space-2">
+      <Button label="Refresh" onClick="readings.refetch()" />
+      <Button label="Settings" onClick="settings.open()" />
+    </HStack>
+    <TemperatureTable rows="{readings}" zone="{zone}" />
+  </PicoTheme>
 </Component>
 >>
     }

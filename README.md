@@ -101,7 +101,9 @@ To add a sensor type, register it in `rids_to_install` inside `io.picolabs.senso
 
 Install `io.picolabs.xmlui` and `io.picolabs.sensor.temperatures_view` on a pico you create for the page. On that pico raise `config new_relationship` with `webvh` set to the community's did:webvh, then approve the invite on the community. The install creates an app channel that allows that event. Query `viewUrl` on that pico for the page URL. The page queries this pico; this pico calls the community's `lastTemperatures`.
 
-On a mesh that requires a bearer, tag that app channel `oauth-webhook`, mint an access token, and paste it under **Settings** on the page. Settings also chooses PST, MST, CST, or EST, and a theme (Default, Dark, Green, or Gray, each in light or dark). The page keeps these in the browser tab, sends the token on the temperature query, and shows each reading time in the chosen standard-time zone. **Refresh** loads the latest readings without reloading the page. The page also polls about once a minute. The defaults are MST and the Default theme.
+On a mesh that requires a bearer, tag that app channel `oauth-webhook`, mint an access token, and paste it under **Settings** on the page. Settings also chooses PST, MST, CST, or EST, and a theme (Default, Dark, Green, or Gray, each in light or dark). The page keeps these in the browser tab, sends the token on the temperature query, and shows each reading time in the chosen standard-time zone. **Refresh** loads the latest readings without reloading the page. The page also polls every five minutes (`poll_seconds`). The defaults are MST and the Default theme.
+
+The view is built from components: `TemperatureSettings` and `TemperatureTable` in this ruleset, and `PicoTheme`, `PicoSettings`, `PicoThemeField`, and `PicoAccessTokenField` from `io.picolabs.xmlui`. It needs pico-engine 1.9.4 or later (`@component` support); flush `io.picolabs.xmlui` on the view pico after upgrading the engine.
 
 ## Dependencies
 
